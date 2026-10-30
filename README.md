@@ -34,6 +34,29 @@ flowchart LR
 | 리스크 · 공급망 | 임원용 대시보드, 공급망 사각지대 탐지 → [srm-risk-supply-chain-dashboard](https://github.com/leeyongha2006/srm-risk-supply-chain-dashboard) |
 | 품질 | 기능 명세서 20종 작성, 회귀 테스트 207개 자동화 → [srm-e2e-test-automation](https://github.com/leeyongha2006/srm-e2e-test-automation) |
 
+## 예제 코드
+
+구매 흐름과 전자계약 단가 처리 방식을 **독립적으로 다시 구현한 예제**입니다. 회사 코드가 아니며, 커스텀 오브젝트 없이 Wrapper 클래스로 동작을 확인할 수 있습니다.
+
+| 파일 | 역할 |
+|---|---|
+| [`ProcurementFlow.cls`](force-app/main/default/classes/ProcurementFlow.cls) | 구매요청 → … → 세금계산서 10단계의 순서를 한곳에서 관리. 다음 단계로만 진행, 반려는 이전 단계 어디로든 가능. 여러 건을 한 번에 검사해 잘못된 건을 모아서 알림 |
+| [`PriceAgreementService.cls`](force-app/main/default/classes/PriceAgreementService.cls) | 계약 서명 시 새 단가를 만들고, 같은 품목 · 공급사의 겹치는 단가는 종료일을 당기거나 비활성으로 정리. 품목 · 공급사 키로 묶어 대량 처리 |
+| `*_Test.cls` | 테스트 10개 — 단계 건너뛰기, 반려, 기간 겹침 · 비겹침, 200건 대량 처리 |
+
+```apex
+// 2026-01-01 부터 쓰던 단가가 있는데, 2026-07-01 시작 계약이 서명되면
+// → 기존 단가 종료일이 2026-06-30 으로 바뀐다.
+PriceAgreementService.Result result = PriceAgreementService.apply(existingPrices, signedPrices);
+```
+
+### 직접 실행
+
+```bash
+sf org create scratch -f config/project-scratch-def.json -a srm-demo
+sf project deploy start -o srm-demo -d force-app --test-level RunLocalTests
+```
+
 ## 배운 점
 
 - 한 화면이 아니라 **구매요청부터 세금계산서까지 이어지는 흐름**을 맡으면서, 한 단계의 변경이 다음 단계 데이터와 권한에 어떤 영향을 주는지 먼저 보는 습관이 생겼습니다.
